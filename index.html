@@ -1159,22 +1159,32 @@ border-radius: 3px;
 </div>
 
 <div class="screen" id="upload">
+  <div class="card">
+    <div class="card-title">Refresh Stats</div>
+    <div class="upload-help" style="margin-bottom: 14px;">
+      <p>The app loads the latest <code>stats.xlsx</code> from GitHub when you open it. Tap below to force a fresh pull right now (after the file has been updated in the repo).</p>
+    </div>
+    <button class="upload-btn" id="refreshBtn" style="width: 100%;">Refresh From Server</button>
+    <div class="upload-status" id="refreshStatus"></div>
+  </div>
+
   <div class="upload-zone" id="uploadZone">
     <div class="upload-icon">📊</div>
-    <div class="upload-text">Upload Excel File</div>
-    <div class="upload-sub">Tap or drag your <code>Mens_Basketball_Stats.xlsx</code> here</div>
+    <div class="upload-text">Manual Upload (Preview Only)</div>
+    <div class="upload-sub">Loads a file on your device only — your friends won't see it. Update the GitHub repo for shared changes.</div>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
     <button class="upload-btn" id="uploadBtn">Choose File</button>
     <div class="upload-status" id="uploadStatus"></div>
   </div>
 
   <div class="card">
-    <div class="card-title">How It Works</div>
+    <div class="card-title">How To Update Weekly</div>
     <div class="upload-help">
-      <p style="margin-bottom: 10px;">Your son keeps doing what he's doing — updating the spreadsheet each week. Whenever you want fresh stats, come back here and upload the latest file.</p>
-      <p style="margin-bottom: 10px;"><strong>Expected sheet name:</strong> <code>Log</code></p>
-      <p style="margin-bottom: 10px;"><strong>Expected columns:</strong> Date, SEASON, Player, Team, Game #, Points, 3 pts, Rebound, Steal, Asst, Block</p>
-      <p>The file stays on your phone — nothing gets uploaded anywhere. Tap "Choose File" again anytime to refresh with the latest data.</p>
+      <p style="margin-bottom: 10px;"><strong>1.</strong> Son updates the Excel file like always</p>
+      <p style="margin-bottom: 10px;"><strong>2.</strong> Open the GitHub repo in Safari (desktop view)</p>
+      <p style="margin-bottom: 10px;"><strong>3.</strong> Tap the existing <code>stats.xlsx</code> → trash icon → commit</p>
+      <p style="margin-bottom: 10px;"><strong>4.</strong> Add file → Upload → drag in the new <code>stats.xlsx</code> → commit</p>
+      <p>Everyone's app refreshes with the new data the next time they open it (or hit Refresh above).</p>
     </div>
   </div>
 
@@ -1301,31 +1311,56 @@ async function saveToStorage() {
 }
 
 // ============ EXCEL PARSING ============
+function workbookToRows(arrayBuffer) {
+  const data = new Uint8Array(arrayBuffer);
+  const wb = XLSX.read(data, { type: 'array', cellDates: true });
+  const sheetName = wb.SheetNames.find(n => n.toLowerCase().trim() === 'log') || wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+  return json
+    .filter(r => r.Player && String(r.Player).trim() !== '')
+    .map(r => ({
+      date: normalizeDate(r.Date),
+      season: parseNum(r['SEASON '] ?? r['SEASON'] ?? r['Season']),
+      player: String(r.Player).trim(),
+      team: r.Team ? String(r.Team).trim() : null,
+      gameNum: parseNum(r['Game #']),
+      points: parseNum(r.Points),
+      threes: parseNum(r['3 pts'] ?? r['3pts'] ?? r['3 Pts']),
+      rebounds: parseNum(r.Rebound ?? r.Rebounds),
+      steals: parseNum(r.Steal ?? r.Steals),
+      assists: parseNum(r.Asst ?? r.Assists ?? r.Ast),
+      blocks: parseNum(r.Block ?? r.Blocks)
+    }));
+}
+
+let dataSource = null; // 'remote', 'local', or null
+
+async function fetchRemoteStats() {
+  try {
+    const url = './stats.xlsx?t=' + Date.now();
+    const response = await fetch(url);
+    if (!response.ok) return false;
+    const buffer = await response.arrayBuffer();
+    const rows = workbookToRows(buffer);
+    if (rows.length === 0) return false;
+    allRows = rows;
+    dataSource = 'remote';
+    await saveToStorage();
+    setupSeasons();
+    return true;
+  } catch (e) {
+    console.warn('Remote stats fetch failed', e);
+    return false;
+  }
+}
+
 function parseFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array', cellDates: true });
-      const sheetName = wb.SheetNames.find(n => n.toLowerCase().trim() === 'log') || wb.SheetNames[0];
-      const sheet = wb.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
-
-      const rows = json
-        .filter(r => r.Player && String(r.Player).trim() !== '')
-        .map(r => ({
-          date: normalizeDate(r.Date),
-          season: parseNum(r['SEASON '] ?? r['SEASON'] ?? r['Season']),
-          player: String(r.Player).trim(),
-          team: r.Team ? String(r.Team).trim() : null,
-          gameNum: parseNum(r['Game #']),
-          points: parseNum(r.Points),
-          threes: parseNum(r['3 pts'] ?? r['3pts'] ?? r['3 Pts']),
-          rebounds: parseNum(r.Rebound ?? r.Rebounds),
-          steals: parseNum(r.Steal ?? r.Steals),
-          assists: parseNum(r.Asst ?? r.Assists ?? r.Ast),
-          blocks: parseNum(r.Block ?? r.Blocks)
-        }));
+      const rows = workbookToRows(e.target.result);
 
       if (rows.length === 0) {
         showToast('No data found in file', true);
@@ -1333,6 +1368,7 @@ function parseFile(file) {
       }
 
       allRows = rows;
+      dataSource = 'local';
       saveToStorage();
       setupSeasons();
       currentSeason = allSeasons[allSeasons.length - 1];
@@ -2083,12 +2119,14 @@ function renderDataInfo() {
     const d = new Date(lastSavedAt);
     savedDisplay = d.toLocaleDateString() + ' at ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
+  const sourceLabel = dataSource === 'remote' ? 'GitHub (shared with friends)' : (dataSource === 'local' ? 'Local upload (only on this device)' : 'Cache');
   document.getElementById('dataInfo').innerHTML = `
     <div><strong style="color:#fff;">${allRows.length}</strong> player-game rows</div>
     <div><strong style="color:#fff;">${allSeasons.length}</strong> season(s): ${allSeasons.map(s => 'S' + s).join(', ')}</div>
     <div><strong style="color:#fff;">${totalGames}</strong> games played</div>
     <div><strong style="color:#fff;">${new Set(allRows.map(r => r.player)).size}</strong> players</div>
-    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #1f1f1f;"><span style="color:#ff6b00; letter-spacing: 1.5px; font-size: 10px; font-weight: 600;">LAST UPLOAD</span> · ${savedDisplay}</div>
+    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #1f1f1f;"><span style="color:#ff6b00; letter-spacing: 1.5px; font-size: 10px; font-weight: 600;">SOURCE</span> · ${sourceLabel}</div>
+    <div><span style="color:#ff6b00; letter-spacing: 1.5px; font-size: 10px; font-weight: 600;">LAST UPDATE</span> · ${savedDisplay}</div>
   `;
 }
 
@@ -2171,16 +2209,47 @@ async function init() {
     t.addEventListener('click', () => switchTab(t.dataset.tab));
   });
 
+  // Refresh from server button
+  document.getElementById('refreshBtn').addEventListener('click', async () => {
+    const status = document.getElementById('refreshStatus');
+    status.textContent = 'Fetching latest...';
+    const ok = await fetchRemoteStats();
+    if (ok) {
+      setupSeasons();
+      if (!allSeasons.includes(currentSeason)) {
+        currentSeason = allSeasons[allSeasons.length - 1];
+      }
+      renderSeasonSelector();
+      renderAll();
+      autoFillScoreboardTeams();
+      status.textContent = '✓ Loaded ' + allRows.length + ' rows from server';
+      showToast('Refreshed');
+    } else {
+      status.textContent = '✗ Could not reach server (no stats.xlsx?)';
+      showToast('Refresh failed', true);
+    }
+  });
+
   initScoreboard();
 
-  // Load (async)
-  const loaded = await loadFromStorage();
-  if (loaded) {
+  // Load: try server first, then fall back to cached data
+  const remoteOk = await fetchRemoteStats();
+  if (remoteOk) {
+    setupSeasons();
+    currentSeason = allSeasons[allSeasons.length - 1];
     renderSeasonSelector();
     renderAll();
     autoFillScoreboardTeams();
   } else {
-    switchTab('upload');
+    const cachedOk = await loadFromStorage();
+    if (cachedOk) {
+      dataSource = 'local';
+      renderSeasonSelector();
+      renderAll();
+      autoFillScoreboardTeams();
+    } else {
+      switchTab('upload');
+    }
   }
 }
 
