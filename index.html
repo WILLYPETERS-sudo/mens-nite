@@ -797,6 +797,128 @@ body {
 .form-dot.W { background: #1a3a1a; color: #4ade80; }
 .form-dot.L { background: #3a1a1a; color: #ff4a4a; }
 
+/* PLAYER PROFILE */
+.profile-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.player-photo-wrap {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  border: 2px solid #ff6b00;
+}
+
+.player-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.player-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 44px;
+  font-weight: 700;
+  color: #ff6b00;
+  letter-spacing: 0;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-nickname {
+  font-size: 13px;
+  color: #aaa;
+  font-style: italic;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+.profile-jersey {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #ff6b00;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.bio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.bio-item {
+  background: #0d0d0d;
+  border: 1px solid #1f1f1f;
+  border-radius: 4px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.bio-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.bio-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.about-row {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1a1a;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.about-row:last-child {
+  border-bottom: none;
+}
+
+.about-label {
+  width: 130px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.about-value {
+  color: #fff;
+  flex: 1;
+  font-weight: 500;
+}
+
 /* ============ SCOREBOARD ============ */
 .sb-wrap {
   display: flex;
@@ -950,7 +1072,7 @@ body.sb-fullscreen .sb-wrap {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 8px 6px;
+  padding: 6px 2px;
 }
 
 .sb-team.home {
@@ -985,7 +1107,7 @@ body.sb-fullscreen .sb-wrap {
 
 .sb-score {
   font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(160px, 52vw, 280px);
+  font-size: clamp(200px, 68vw, 380px);
   font-weight: 800;
   text-align: center;
   line-height: 1;
@@ -993,8 +1115,8 @@ body.sb-fullscreen .sb-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: -8px;
-  text-shadow: 0 4px 14px rgba(0,0,0,0.7);
+  letter-spacing: -12px;
+  text-shadow: 0 4px 18px rgba(0,0,0,0.75);
 }
 
 .sb-team.home .sb-score { color: #60b8ff; }
@@ -1184,6 +1306,17 @@ body.sb-fullscreen .sb-wrap {
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-title">Player Bios &amp; Photos</div>
+    <div class="upload-help">
+      <p style="margin-bottom: 10px;"><strong>Bios:</strong> Add a new sheet to your Excel called <code>Players</code> with these column headers in row 1:</p>
+      <p style="margin-bottom: 10px; padding-left: 8px; color: #ccc;"><code>Player</code>, <code>Height</code>, <code>Wingspan</code>, <code>Age</code>, <code>Position</code>, <code>Jersey #</code>, <code>Years Playing</code>, <code>Hometown</code>, <code>Nickname</code>, <code>Favorite Player</code>, <code>Signature Move</code>, <code>Bio</code></p>
+      <p style="margin-bottom: 10px;">One row per player. Fill in what you want, leave the rest blank. The <code>Player</code> name must match exactly what's in the Log sheet (Hudson, Joe, Jake, etc).</p>
+      <p style="margin-bottom: 10px;"><strong>Photos:</strong> In your GitHub repo, create a folder called <code>photos</code>. Upload one image per player named like <code>willy.jpg</code>, <code>matt.jpg</code> (lowercase first name only).</p>
+      <p>If a player doesn't have a photo, their initial shows in orange as a placeholder.</p>
+    </div>
+  </div>
+
   <div class="card" id="dataInfoCard" style="display:none;">
     <div class="card-title">Loaded Data</div>
     <div id="dataInfo" style="font-size: 12px; color: #aaa; line-height: 1.8;"></div>
@@ -1196,6 +1329,7 @@ body.sb-fullscreen .sb-wrap {
 const STORAGE_KEY = 'mens-night-stats-data';
 
 let allRows = [];
+let allBios = {};
 let currentSeason = null;
 let allSeasons = [];
 let currentView = { tab: 'standings', playerName: null };
@@ -1242,44 +1376,35 @@ async function idbSet(key, value) {
 }
 
 async function loadFromStorage() {
+  const tryParse = (raw) => {
+    const data = JSON.parse(raw);
+    allRows = data.rows || [];
+    allBios = data.bios || {};
+    lastSavedAt = data.savedAt || null;
+    setupSeasons();
+    return true;
+  };
+
   // 1. Claude's persistent storage (only exists on Claude-hosted artifacts)
   if (typeof window.storage !== 'undefined' && window.storage.get) {
     try {
       const result = await window.storage.get(STORAGE_KEY);
-      if (result && result.value) {
-        const data = JSON.parse(result.value);
-        allRows = data.rows || [];
-        lastSavedAt = data.savedAt || null;
-        setupSeasons();
-        return true;
-      }
+      if (result && result.value) return tryParse(result.value);
     } catch (e) {}
   }
 
   // 2. IndexedDB (best for iOS Home Screen apps)
   try {
     const value = await idbGet(STORAGE_KEY);
-    if (value) {
-      const data = JSON.parse(value);
-      allRows = data.rows || [];
-      lastSavedAt = data.savedAt || null;
-      setupSeasons();
-      return true;
-    }
+    if (value) return tryParse(value);
   } catch (e) {
     console.warn('IndexedDB load failed', e);
   }
 
-  // 3. Last resort: localStorage (may not persist on iOS PWAs)
+  // 3. Last resort: localStorage
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const data = JSON.parse(stored);
-      allRows = data.rows || [];
-      lastSavedAt = data.savedAt || null;
-      setupSeasons();
-      return true;
-    }
+    if (stored) return tryParse(stored);
   } catch (e) {
     console.error('Load failed', e);
   }
@@ -1288,33 +1413,24 @@ async function loadFromStorage() {
 
 async function saveToStorage() {
   lastSavedAt = new Date().toISOString();
-  const payload = JSON.stringify({ rows: allRows, savedAt: lastSavedAt });
+  const payload = JSON.stringify({ rows: allRows, bios: allBios, savedAt: lastSavedAt });
 
-  // Write to every available storage layer for redundancy
   if (typeof window.storage !== 'undefined' && window.storage.set) {
     try { await window.storage.set(STORAGE_KEY, payload); } catch (e) {}
   }
-
-  try {
-    await idbSet(STORAGE_KEY, payload);
-  } catch (e) {
-    console.warn('IndexedDB save failed', e);
-  }
-
-  try {
-    localStorage.setItem(STORAGE_KEY, payload);
-  } catch (e) {}
+  try { await idbSet(STORAGE_KEY, payload); } catch (e) { console.warn('IndexedDB save failed', e); }
+  try { localStorage.setItem(STORAGE_KEY, payload); } catch (e) {}
 }
 
 // ============ EXCEL PARSING ============
-function workbookToRows(arrayBuffer) {
+function workbookToData(arrayBuffer) {
   const data = new Uint8Array(arrayBuffer);
   const wb = XLSX.read(data, { type: 'array', cellDates: true });
-  const sheetName = wb.SheetNames.find(n => n.toLowerCase().trim() === 'log') || wb.SheetNames[0];
-  const sheet = wb.Sheets[sheetName];
-  const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
 
-  return json
+  // Stats from Log sheet
+  const logSheet = wb.SheetNames.find(n => n.toLowerCase().trim() === 'log') || wb.SheetNames[0];
+  const logJson = XLSX.utils.sheet_to_json(wb.Sheets[logSheet], { defval: null });
+  const rows = logJson
     .filter(r => r.Player && String(r.Player).trim() !== '')
     .map(r => ({
       date: normalizeDate(r.Date),
@@ -1329,6 +1445,40 @@ function workbookToRows(arrayBuffer) {
       assists: parseNum(r.Asst ?? r.Assists ?? r.Ast),
       blocks: parseNum(r.Block ?? r.Blocks)
     }));
+
+  // Bios from Players/Bios/Roster sheet (optional)
+  const bios = {};
+  const biosSheetName = wb.SheetNames.find(n =>
+    ['players', 'bios', 'roster', 'profiles'].includes(n.toLowerCase().trim())
+  );
+  if (biosSheetName) {
+    const biosJson = XLSX.utils.sheet_to_json(wb.Sheets[biosSheetName], { defval: null });
+    biosJson.forEach(r => {
+      if (!r.Player) return;
+      const name = String(r.Player).trim();
+      const get = (...keys) => {
+        for (const k of keys) {
+          if (r[k] !== null && r[k] !== undefined && r[k] !== '') return r[k];
+        }
+        return null;
+      };
+      bios[name] = {
+        height: get('Height', 'Ht', 'HT'),
+        wingspan: get('Wingspan', 'Wing Span', 'WS'),
+        age: get('Age'),
+        position: get('Position', 'Pos', 'POS'),
+        jersey: get('Jersey #', 'Jersey', '#', 'Number'),
+        yearsPlaying: get('Years Playing', 'Years', 'Experience', 'Yrs'),
+        hometown: get('Hometown', 'From'),
+        nickname: get('Nickname', 'Nick'),
+        favPlayer: get('Favorite Player', 'Favorite NBA Player', 'Fav Player'),
+        signature: get('Signature Move', 'Move', 'Sig Move'),
+        bio: get('Bio', 'About', 'Notes')
+      };
+    });
+  }
+
+  return { rows, bios };
 }
 
 let dataSource = null; // 'remote', 'local', or null
@@ -1339,9 +1489,10 @@ async function fetchRemoteStats() {
     const response = await fetch(url);
     if (!response.ok) return false;
     const buffer = await response.arrayBuffer();
-    const rows = workbookToRows(buffer);
+    const { rows, bios } = workbookToData(buffer);
     if (rows.length === 0) return false;
     allRows = rows;
+    allBios = bios;
     dataSource = 'remote';
     await saveToStorage();
     setupSeasons();
@@ -1356,7 +1507,7 @@ function parseFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const rows = workbookToRows(e.target.result);
+      const { rows, bios } = workbookToData(e.target.result);
 
       if (rows.length === 0) {
         showToast('No data found in file', true);
@@ -1364,6 +1515,7 @@ function parseFile(file) {
       }
 
       allRows = rows;
+      allBios = bios;
       dataSource = 'local';
       saveToStorage();
       setupSeasons();
@@ -1371,7 +1523,8 @@ function parseFile(file) {
       renderSeasonSelector();
       renderAll();
       switchTab('standings');
-      document.getElementById('uploadStatus').textContent = '✓ Loaded ' + rows.length + ' rows · ' + allSeasons.length + ' season(s)';
+      const biosCount = Object.keys(bios).length;
+      document.getElementById('uploadStatus').textContent = '✓ Loaded ' + rows.length + ' rows · ' + biosCount + ' bios · ' + allSeasons.length + ' season(s)';
       showToast('Stats loaded');
     } catch (err) {
       console.error(err);
@@ -1913,11 +2066,68 @@ function renderPlayerDetail(name) {
     </div>
   `).join('');
 
+  // Bio
+  const bio = allBios[player.name] || {};
+  const firstName = player.name.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '');
+  const photoUrl = `./photos/${firstName}.jpg`;
+  const initial = player.name.charAt(0).toUpperCase();
+
+  // Quick-fact bio items (compact grid)
+  const bioFacts = [
+    { label: 'HT', value: bio.height },
+    { label: 'WS', value: bio.wingspan },
+    { label: 'AGE', value: bio.age },
+    { label: 'POS', value: bio.position },
+    { label: 'YRS', value: bio.yearsPlaying }
+  ].filter(b => b.value !== null && b.value !== undefined && b.value !== '');
+
+  const bioFactsHtml = bioFacts.length ? `
+    <div class="bio-grid">
+      ${bioFacts.map(b => `
+        <div class="bio-item">
+          <span class="bio-label">${b.label}</span>
+          <span class="bio-value">${escapeHtml(String(b.value))}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  // Longer-form "about" items
+  const aboutItems = [
+    { label: 'Hometown', value: bio.hometown },
+    { label: 'Favorite Player', value: bio.favPlayer },
+    { label: 'Signature Move', value: bio.signature },
+    { label: 'About', value: bio.bio }
+  ].filter(b => b.value !== null && b.value !== undefined && b.value !== '');
+
+  const aboutHtml = aboutItems.length ? `
+    <div class="card">
+      <div class="card-title">About</div>
+      ${aboutItems.map(b => `
+        <div class="about-row">
+          <div class="about-label">${escapeHtml(b.label)}</div>
+          <div class="about-value">${escapeHtml(String(b.value))}</div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
   document.getElementById('playersContent').innerHTML = `
     <button class="back-btn" id="backBtn">← Back to All Players</button>
     <div class="player-detail-header">
-      <div class="player-detail-name">${escapeHtml(player.name)}</div>
-      <div class="player-detail-team" style="color: #ff6b00;">${escapeHtml(player.team || '')} · ${player.gp} GAMES</div>
+      <div class="profile-header">
+        <div class="player-photo-wrap">
+          <img class="player-photo" src="${photoUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="player-photo-placeholder" style="display:none;">${escapeHtml(initial)}</div>
+        </div>
+        <div class="profile-info">
+          <div class="player-detail-name">${escapeHtml(player.name)}</div>
+          ${bio.nickname ? `<div class="profile-nickname">"${escapeHtml(String(bio.nickname))}"</div>` : ''}
+          <div class="player-detail-team" style="color: #ff6b00;">${escapeHtml(player.team || '')} · ${player.gp} GAMES</div>
+          ${bio.jersey ? `<div class="profile-jersey">#${escapeHtml(String(bio.jersey))}</div>` : ''}
+        </div>
+      </div>
+      ${bioFactsHtml}
       <div class="stat-grid">
         <div class="stat-box">
           <div class="stat-value">${player.ppg.toFixed(1)}</div>
@@ -1950,6 +2160,8 @@ function renderPlayerDetail(name) {
         </div>
       </div>
     </div>
+
+    ${aboutHtml}
 
     ${recent.length ? `
     <div class="card">
