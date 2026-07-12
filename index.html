@@ -1096,13 +1096,25 @@ body.sb-fullscreen .sb-wrap {
   padding: 4px 0;
   width: 100%;
   text-transform: uppercase;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
+  border-bottom: 1px dashed rgba(255,255,255,0.3);
   margin-bottom: 6px;
   outline: none;
 }
 
 .sb-team-name:focus {
   border-bottom-color: #ff6b00;
+  border-bottom-style: solid;
+  background: rgba(255,255,255,0.05);
+}
+
+.sb-team-name-hint {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #555;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .sb-score {
@@ -1150,15 +1162,28 @@ body.sb-fullscreen .sb-wrap {
 
 .sb-undo-btn {
   width: 100%;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #aaa;
+  background: rgba(255, 74, 74, 0.1);
+  border: 1.5px solid rgba(255, 74, 74, 0.5);
+  color: #ff8080;
   font-family: 'Oswald', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 8px 0;
-  letter-spacing: 1px;
-  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 11px 0;
+  letter-spacing: 1.5px;
+  border-radius: 5px;
+  margin-top: 6px;
+}
+
+.sb-undo-btn:active {
+  background: rgba(255, 74, 74, 0.25);
+  transform: scale(0.96);
+}
+
+.sb-undo-btn:disabled {
+  opacity: 0.3;
+  border-color: rgba(255,255,255,0.1);
+  color: #666;
+  background: transparent;
 }
 
 .sb-bottom-bar {
@@ -1235,6 +1260,7 @@ body.sb-fullscreen .sb-wrap {
 
     <div class="sb-teams">
       <div class="sb-team home">
+        <div class="sb-team-name-hint">✎ tap to rename</div>
         <input type="text" class="sb-team-name" id="sbHomeName" value="HOME" maxlength="12">
         <div class="sb-score" id="sbHomeScore">0</div>
         <div class="sb-score-buttons">
@@ -1242,10 +1268,11 @@ body.sb-fullscreen .sb-wrap {
           <button class="sb-score-btn" data-sb-team="home" data-sb-pts="2">+2</button>
           <button class="sb-score-btn" data-sb-team="home" data-sb-pts="3">+3</button>
         </div>
-        <button class="sb-undo-btn" data-sb-team="home" data-sb-pts="-1">UNDO</button>
+        <button class="sb-undo-btn" id="sbUndoHome" data-sb-team="home" disabled>↺ UNDO</button>
       </div>
 
       <div class="sb-team away">
+        <div class="sb-team-name-hint">✎ tap to rename</div>
         <input type="text" class="sb-team-name" id="sbAwayName" value="AWAY" maxlength="12">
         <div class="sb-score" id="sbAwayScore">0</div>
         <div class="sb-score-buttons">
@@ -1253,7 +1280,7 @@ body.sb-fullscreen .sb-wrap {
           <button class="sb-score-btn" data-sb-team="away" data-sb-pts="2">+2</button>
           <button class="sb-score-btn" data-sb-team="away" data-sb-pts="3">+3</button>
         </div>
-        <button class="sb-undo-btn" data-sb-team="away" data-sb-pts="-1">UNDO</button>
+        <button class="sb-undo-btn" id="sbUndoAway" data-sb-team="away" disabled>↺ UNDO</button>
       </div>
     </div>
 
@@ -1327,6 +1354,7 @@ body.sb-fullscreen .sb-wrap {
 
 <script>
 const STORAGE_KEY = 'mens-night-stats-data';
+const TEAM_NAMES_KEY = 'mens-night-team-names';
 
 let allRows = [];
 let allBios = {};
@@ -1420,6 +1448,38 @@ async function saveToStorage() {
   }
   try { await idbSet(STORAGE_KEY, payload); } catch (e) { console.warn('IndexedDB save failed', e); }
   try { localStorage.setItem(STORAGE_KEY, payload); } catch (e) {}
+}
+
+async function loadTeamNames() {
+  const tryParse = (raw) => {
+    const data = JSON.parse(raw);
+    return { home: data.home || null, away: data.away || null };
+  };
+
+  if (typeof window.storage !== 'undefined' && window.storage.get) {
+    try {
+      const result = await window.storage.get(TEAM_NAMES_KEY);
+      if (result && result.value) return tryParse(result.value);
+    } catch (e) {}
+  }
+  try {
+    const value = await idbGet(TEAM_NAMES_KEY);
+    if (value) return tryParse(value);
+  } catch (e) {}
+  try {
+    const stored = localStorage.getItem(TEAM_NAMES_KEY);
+    if (stored) return tryParse(stored);
+  } catch (e) {}
+  return { home: null, away: null };
+}
+
+async function saveTeamNames(home, away) {
+  const payload = JSON.stringify({ home, away });
+  if (typeof window.storage !== 'undefined' && window.storage.set) {
+    try { await window.storage.set(TEAM_NAMES_KEY, payload); } catch (e) {}
+  }
+  try { await idbSet(TEAM_NAMES_KEY, payload); } catch (e) {}
+  try { localStorage.setItem(TEAM_NAMES_KEY, payload); } catch (e) {}
 }
 
 // ============ EXCEL PARSING ============
@@ -2391,6 +2451,9 @@ function renderAll() {
 
 // ============ INIT ============
 async function init() {
+  // Load any previously saved custom team names
+  customTeamNames = await loadTeamNames();
+
   // File upload
   document.getElementById('uploadBtn').addEventListener('click', () => {
     document.getElementById('fileInput').click();
@@ -2470,6 +2533,7 @@ const sbState = {
   totalEveningMs: 60 * 60 * 1000,
   timeMs: 15 * 60 * 1000,
   running: false,
+  history: { home: [], away: [] },
 };
 
 let sbTickHandle = null;
@@ -2517,6 +2581,22 @@ function sbRender() {
   const startStopBtn = document.getElementById('sbStartStopBtn');
   startStopBtn.textContent = sbState.running ? 'STOP' : 'START';
   startStopBtn.classList.toggle('running', sbState.running);
+
+  updateUndoButton('home');
+  updateUndoButton('away');
+}
+
+function updateUndoButton(team) {
+  const btn = document.getElementById(team === 'home' ? 'sbUndoHome' : 'sbUndoAway');
+  const stack = sbState.history[team];
+  if (stack.length === 0) {
+    btn.disabled = true;
+    btn.textContent = '↺ UNDO';
+  } else {
+    btn.disabled = false;
+    const last = stack[stack.length - 1];
+    btn.textContent = `↺ UNDO +${last}`;
+  }
 }
 
 function sbStartClock() {
@@ -2564,19 +2644,44 @@ function sbBuzzer() {
   } catch (e) {}
 }
 
+let customTeamNames = { home: null, away: null };
+
 function autoFillScoreboardTeams() {
+  const homeInput = document.getElementById('sbHomeName');
+  const awayInput = document.getElementById('sbAwayName');
+
+  // Saved custom name always wins
+  if (customTeamNames.home) { homeInput.value = customTeamNames.home; }
+  if (customTeamNames.away) { awayInput.value = customTeamNames.away; }
+
   if (allRows.length === 0) return;
   const teams = seasonTeams();
   if (teams.length === 2) {
-    const homeInput = document.getElementById('sbHomeName');
-    const awayInput = document.getElementById('sbAwayName');
-    // Only auto-fill if still showing defaults
-    if (homeInput.value === 'HOME' || homeInput.value === '') homeInput.value = teams[0].toUpperCase();
-    if (awayInput.value === 'AWAY' || awayInput.value === '') awayInput.value = teams[1].toUpperCase();
+    // Only auto-fill from spreadsheet if the user hasn't set a custom name
+    if (!customTeamNames.home && (homeInput.value === 'HOME' || homeInput.value === '')) homeInput.value = teams[0].toUpperCase();
+    if (!customTeamNames.away && (awayInput.value === 'AWAY' || awayInput.value === '')) awayInput.value = teams[1].toUpperCase();
   }
 }
 
 function initScoreboard() {
+  // Team name editing: select-all on focus, Enter to confirm, persist on change
+  const homeInput = document.getElementById('sbHomeName');
+  const awayInput = document.getElementById('sbAwayName');
+
+  [homeInput, awayInput].forEach((input, idx) => {
+    const key = idx === 0 ? 'home' : 'away';
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+    });
+    input.addEventListener('change', () => {
+      const val = input.value.trim().toUpperCase() || (key === 'home' ? 'HOME' : 'AWAY');
+      input.value = val;
+      customTeamNames[key] = val;
+      saveTeamNames(customTeamNames.home, customTeamNames.away);
+    });
+  });
+
   document.getElementById('sbStartStopBtn').addEventListener('click', () => {
     if (sbState.running) sbStopClock();
     else sbStartClock();
@@ -2633,13 +2738,25 @@ function initScoreboard() {
     sbRender();
   });
 
-  document.querySelectorAll('[data-sb-team]').forEach(btn => {
+  document.querySelectorAll('.sb-score-btn[data-sb-team]').forEach(btn => {
     btn.addEventListener('click', () => {
       const team = btn.dataset.sbTeam;
       const pts = parseInt(btn.dataset.sbPts || '0', 10);
       if (pts) {
         sbState[team] = Math.max(0, sbState[team] + pts);
+        sbState.history[team].push(pts);
       }
+      sbRender();
+    });
+  });
+
+  document.querySelectorAll('.sb-undo-btn[data-sb-team]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const team = btn.dataset.sbTeam;
+      const stack = sbState.history[team];
+      if (stack.length === 0) return;
+      const last = stack.pop();
+      sbState[team] = Math.max(0, sbState[team] - last);
       sbRender();
     });
   });
@@ -2651,6 +2768,7 @@ function initScoreboard() {
     sbState.away = 0;
     sbState.period = 1;
     sbState.timeMs = sbQuarterLength();
+    sbState.history = { home: [], away: [] };
     sbRender();
   });
 
