@@ -1073,6 +1073,8 @@ body.sb-fullscreen .sb-wrap {
   display: flex;
   flex-direction: column;
   padding: 6px 2px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .sb-team.home {
@@ -1117,18 +1119,25 @@ body.sb-fullscreen .sb-wrap {
   margin-bottom: 4px;
 }
 
-.sb-score {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(200px, 68vw, 380px);
-  font-weight: 800;
-  text-align: center;
-  line-height: 1;
+.sb-score-box {
   flex: 1;
+  min-height: 0;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: -12px;
+  overflow: hidden;
+}
+
+.sb-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1;
+  letter-spacing: -0.03em;
   text-shadow: 0 4px 18px rgba(0,0,0,0.75);
+  font-size: 200px; /* overridden precisely by JS once the box is measured */
+  white-space: nowrap;
 }
 
 .sb-team.home .sb-score { color: #60b8ff; }
@@ -1186,6 +1195,105 @@ body.sb-fullscreen .sb-wrap {
   background: transparent;
 }
 
+.sb-timeout-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.sb-timeout-btn {
+  flex: 1;
+  background: rgba(255, 214, 0, 0.08);
+  border: 1.5px solid rgba(255, 214, 0, 0.45);
+  color: #ffd54a;
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 9px 2px;
+  letter-spacing: 1px;
+  border-radius: 5px;
+  text-transform: uppercase;
+}
+
+.sb-timeout-btn:active {
+  background: rgba(255, 214, 0, 0.25);
+  transform: scale(0.95);
+}
+
+.sb-timeout-btn.used {
+  opacity: 0.3;
+  border-color: rgba(255,255,255,0.1);
+  color: #666;
+  background: transparent;
+}
+
+.sb-timeout-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.97);
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.sb-timeout-overlay.active {
+  display: flex;
+}
+
+.sb-timeout-team-label {
+  font-size: clamp(20px, 6vw, 32px);
+  letter-spacing: 3px;
+  font-weight: 700;
+  color: #ff6b00;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.sb-timeout-title {
+  font-size: 13px;
+  letter-spacing: 5px;
+  color: #888;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+.sb-timeout-clock {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(90px, 28vw, 180px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(255, 107, 0, 0.4);
+}
+
+.sb-timeout-clock.critical {
+  color: #ff2a2a;
+  animation: sb-pulse 0.5s ease-in-out infinite alternate;
+}
+
+.sb-timeout-end-btn {
+  margin-top: 36px;
+  background: #ff6b00;
+  color: #000;
+  border: none;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 16px 34px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.sb-timeout-end-btn:active {
+  transform: scale(0.96);
+}
+
 .sb-bottom-bar {
   background: #000;
   padding: 8px 12px;
@@ -1217,6 +1325,74 @@ body.sb-fullscreen .sb-wrap {
   padding: 6px 12px;
   letter-spacing: 1px;
   border-radius: 3px;
+}
+
+/* FULL SCREEN "GAME MODE" — the score is what a whole room is reading
+   from a distance, so every other control shrinks to the bare minimum
+   footprint, freeing the rest of the screen for the digit itself. */
+body.sb-fullscreen .sb-preset-row {
+  display: none;
+}
+
+body.sb-fullscreen .sb-clock-section {
+  padding: 5px 16px 6px;
+}
+
+body.sb-fullscreen .sb-period-row {
+  margin-bottom: 3px;
+}
+
+body.sb-fullscreen .sb-clock-display {
+  font-size: clamp(44px, 11vw, 64px);
+}
+
+body.sb-fullscreen .sb-clock-controls {
+  margin-top: 4px;
+}
+
+body.sb-fullscreen .sb-clock-btn {
+  padding: 5px 10px;
+  font-size: 10px;
+  min-width: 50px;
+}
+
+body.sb-fullscreen .sb-team-name-hint {
+  display: none;
+}
+
+body.sb-fullscreen .sb-team-name {
+  font-size: 12px;
+  padding: 2px 0;
+  margin-bottom: 2px;
+}
+
+body.sb-fullscreen .sb-score-buttons {
+  margin-bottom: 2px;
+}
+
+body.sb-fullscreen .sb-score-btn {
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+body.sb-fullscreen .sb-undo-btn {
+  padding: 6px 0;
+  margin-top: 3px;
+  font-size: 10px;
+}
+
+body.sb-fullscreen .sb-timeout-row {
+  margin-top: 3px;
+  gap: 3px;
+}
+
+body.sb-fullscreen .sb-timeout-btn {
+  padding: 5px 2px;
+  font-size: 8px;
+}
+
+body.sb-fullscreen .sb-bottom-bar {
+  padding: 4px 10px;
 }
 </style>
 </head>
@@ -1262,25 +1438,27 @@ body.sb-fullscreen .sb-wrap {
       <div class="sb-team home">
         <div class="sb-team-name-hint">✎ tap to rename</div>
         <input type="text" class="sb-team-name" id="sbHomeName" value="HOME" maxlength="12">
-        <div class="sb-score" id="sbHomeScore">0</div>
+        <div class="sb-score-box" id="sbHomeScoreBox"><span class="sb-score" id="sbHomeScore">0</span></div>
         <div class="sb-score-buttons">
           <button class="sb-score-btn" data-sb-team="home" data-sb-pts="1">+1</button>
           <button class="sb-score-btn" data-sb-team="home" data-sb-pts="2">+2</button>
           <button class="sb-score-btn" data-sb-team="home" data-sb-pts="3">+3</button>
         </div>
         <button class="sb-undo-btn" id="sbUndoHome" data-sb-team="home" disabled>↺ UNDO</button>
+        <div class="sb-timeout-row" id="sbTimeoutHome"></div>
       </div>
 
       <div class="sb-team away">
         <div class="sb-team-name-hint">✎ tap to rename</div>
         <input type="text" class="sb-team-name" id="sbAwayName" value="AWAY" maxlength="12">
-        <div class="sb-score" id="sbAwayScore">0</div>
+        <div class="sb-score-box" id="sbAwayScoreBox"><span class="sb-score" id="sbAwayScore">0</span></div>
         <div class="sb-score-buttons">
           <button class="sb-score-btn" data-sb-team="away" data-sb-pts="1">+1</button>
           <button class="sb-score-btn" data-sb-team="away" data-sb-pts="2">+2</button>
           <button class="sb-score-btn" data-sb-team="away" data-sb-pts="3">+3</button>
         </div>
         <button class="sb-undo-btn" id="sbUndoAway" data-sb-team="away" disabled>↺ UNDO</button>
+        <div class="sb-timeout-row" id="sbTimeoutAway"></div>
       </div>
     </div>
 
@@ -1289,6 +1467,13 @@ body.sb-fullscreen .sb-wrap {
       <button class="sb-fs-btn" id="sbFsBtn">⛶ FULL SCREEN</button>
     </div>
   </div>
+</div>
+
+<div class="sb-timeout-overlay" id="sbTimeoutOverlay">
+  <div class="sb-timeout-team-label" id="sbTimeoutTeamLabel">HOME</div>
+  <div class="sb-timeout-title">Timeout</div>
+  <div class="sb-timeout-clock" id="sbTimeoutClock">3:00</div>
+  <button class="sb-timeout-end-btn" id="sbTimeoutEndBtn">END TIMEOUT</button>
 </div>
 
 <div class="screen active" id="standings">
@@ -1661,6 +1846,18 @@ function teamScoreFromGame(game, team) {
   return game.players.filter(p => p.team === team).reduce((s, p) => s + p.points, 0);
 }
 
+// Sums each team's total points across a whole night (all games/quarters
+// combined for that date). Used for player "Recent Form" W/L, since a
+// player's per-night stat line doesn't map to one single tracked game.
+function getNightTeamTotals(date) {
+  const totals = {};
+  seasonRows().forEach(r => {
+    if (r.date !== date || !r.team) return;
+    totals[r.team] = (totals[r.team] || 0) + r.points;
+  });
+  return totals;
+}
+
 function getTeamStats() {
   const teams = seasonTeams();
   const stats = {};
@@ -1688,26 +1885,52 @@ function getTeamStats() {
 
 function getPlayerStats(playerName = null) {
   const players = {};
+
+  // Merge raw rows into one entry per (player, date) — a full night out
+  // counts as one game for player averages, whether that night was played
+  // as 3 short games (old format) or 1 long game with quarters (Season 3+).
+  // Team Standings / Games tab are unaffected — those still track each
+  // actual game individually via getGames().
+  const gameEntries = {};
   seasonRows().forEach(r => {
     if (playerName && r.player !== playerName) return;
-    if (!players[r.player]) {
-      players[r.player] = {
-        name: r.player,
-        team: r.team,
+    const key = r.player + '|' + r.date;
+    if (!gameEntries[key]) {
+      gameEntries[key] = {
+        player: r.player, team: r.team, date: r.date,
+        points: 0, threes: 0, rebounds: 0, steals: 0, assists: 0, blocks: 0
+      };
+    }
+    const g = gameEntries[key];
+    g.points += r.points;
+    g.threes += r.threes;
+    g.rebounds += r.rebounds;
+    g.steals += r.steals;
+    g.assists += r.assists;
+    g.blocks += r.blocks;
+    if (r.team) g.team = r.team;
+  });
+
+  Object.values(gameEntries).forEach(g => {
+    if (!players[g.player]) {
+      players[g.player] = {
+        name: g.player,
+        team: g.team,
         gp: 0,
         points: 0, threes: 0, rebounds: 0, steals: 0, assists: 0, blocks: 0,
         gameLog: []
       };
     }
-    const p = players[r.player];
+    const p = players[g.player];
     p.gp += 1;
-    p.points += r.points;
-    p.threes += r.threes;
-    p.rebounds += r.rebounds;
-    p.steals += r.steals;
-    p.assists += r.assists;
-    p.blocks += r.blocks;
-    p.gameLog.push(r);
+    p.points += g.points;
+    p.threes += g.threes;
+    p.rebounds += g.rebounds;
+    p.steals += g.steals;
+    p.assists += g.assists;
+    p.blocks += g.blocks;
+    p.gameLog.push(g);
+    if (g.team) p.team = g.team;
   });
 
   Object.values(players).forEach(p => {
@@ -1798,12 +2021,9 @@ function generateInsights(player) {
     });
   }
 
-  // Trend: last 2 games vs first 2 games
+  // Trend: last 2 nights vs first 2 nights
   if (player.gameLog.length >= 4) {
-    const sorted = [...player.gameLog].sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return a.gameNum - b.gameNum;
-    });
+    const sorted = [...player.gameLog].sort((a, b) => a.date.localeCompare(b.date));
     const half = Math.floor(sorted.length / 2);
     const early = sorted.slice(0, half);
     const recent = sorted.slice(-half);
@@ -2072,23 +2292,18 @@ function renderPlayerDetail(name) {
   const all = Object.values(players);
   const insights = generateInsights(player);
 
-  // Recent form (last 5 games)
-  const sorted = [...player.gameLog].sort((a, b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return a.gameNum - b.gameNum;
-  });
+  // Recent form (last 5 nights)
+  const sorted = [...player.gameLog].sort((a, b) => a.date.localeCompare(b.date));
   const recent = sorted.slice(-5);
 
-  // Get team result for each recent game
-  const games = getGames();
+  // Get team result for each recent night (compare each team's total points across the whole night)
   const formHtml = recent.map(g => {
-    const game = games.find(gm => gm.date === g.date && gm.gameNum === g.gameNum);
-    if (!game) return '';
     const teams = seasonTeams();
     if (teams.length !== 2) return '';
-    const playerTeamScore = teamScoreFromGame(game, player.team);
+    const nightTotals = getNightTeamTotals(g.date);
+    const playerTeamScore = nightTotals[player.team] || 0;
     const otherTeam = teams.find(t => t !== player.team);
-    const otherScore = teamScoreFromGame(game, otherTeam);
+    const otherScore = nightTotals[otherTeam] || 0;
     const result = playerTeamScore > otherScore ? 'W' : 'L';
     return `<div class="form-dot ${result}">${g.points}</div>`;
   }).join('');
@@ -2257,13 +2472,10 @@ function renderPlayerDetail(name) {
 }
 
 function renderGameLog(gameLog) {
-  const sorted = [...gameLog].sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    return b.gameNum - a.gameNum;
-  });
+  const sorted = [...gameLog].sort((a, b) => b.date.localeCompare(a.date));
   return `
     <div class="box-row header">
-      <div>Date · G#</div>
+      <div>Date</div>
       <div class="pstat">PTS</div>
       <div class="pstat">REB</div>
       <div class="pstat">AST</div>
@@ -2272,7 +2484,7 @@ function renderGameLog(gameLog) {
     </div>
     ${sorted.map(g => `
       <div class="box-row">
-        <div class="pname" style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">${formatDate(g.date)} · ${g.gameNum}</div>
+        <div class="pname" style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">${formatDate(g.date)}</div>
         <div class="pstat" style="color: #fff;">${g.points}</div>
         <div class="pstat">${g.rebounds}</div>
         <div class="pstat">${g.assists}</div>
@@ -2440,6 +2652,9 @@ function switchTab(name) {
   if (name === 'players') renderPlayers();
   if (name === 'games') renderGames();
   if (name === 'upload') renderDataInfo();
+  if (name === 'score' && typeof sbFitAllScores === 'function') {
+    requestAnimationFrame(sbFitAllScores);
+  }
 }
 
 function renderAll() {
@@ -2534,7 +2749,14 @@ const sbState = {
   timeMs: 15 * 60 * 1000,
   running: false,
   history: { home: [], away: [] },
+  timeoutsPerTeam: 2,
+  timeoutLengthMs: 3 * 60 * 1000,
+  timeoutsUsed: { home: 0, away: 0 },
+  timeoutActive: null, // { team, remainingMs }
 };
+
+let sbTimeoutTickHandle = null;
+let sbTimeoutLastTick = 0;
 
 let sbTickHandle = null;
 let sbLastTick = 0;
@@ -2554,6 +2776,33 @@ function sbFormatTime(ms) {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// Measures the actual rendered score box and sets an exact pixel font-size
+// so the digit fills as much of the real available space as possible,
+// in both portrait and full-screen landscape, on any device.
+function sbFitScore(boxId, spanId) {
+  const box = document.getElementById(boxId);
+  const span = document.getElementById(spanId);
+  if (!box || !span) return;
+  const boxW = box.clientWidth;
+  const boxH = box.clientHeight;
+  if (!boxW || !boxH) return;
+
+  // Start near the box's full height, then shrink if the digit is too wide
+  let size = boxH * 0.94;
+  span.style.fontSize = size + 'px';
+  const maxW = boxW * 0.95;
+  const renderedW = span.scrollWidth;
+  if (renderedW > maxW) {
+    size = size * (maxW / renderedW);
+    span.style.fontSize = size + 'px';
+  }
+}
+
+function sbFitAllScores() {
+  sbFitScore('sbHomeScoreBox', 'sbHomeScore');
+  sbFitScore('sbAwayScoreBox', 'sbAwayScore');
 }
 
 function sbRender() {
@@ -2628,20 +2877,105 @@ function sbTick(now) {
   if (sbState.running) sbTickHandle = requestAnimationFrame(sbTick);
 }
 
+let sbAudioCtx = null;
+
+// iOS Safari only allows audio to start inside a direct tap. The buzzer
+// itself fires from a background clock timer (not a tap), so we create
+// and "unlock" the AudioContext once, on an early real button tap, and
+// reuse that same context later — that's the only way the buzzer can
+// actually make sound when the clock hits zero.
+function sbUnlockAudio() {
+  if (sbAudioCtx) return;
+  try {
+    sbAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = sbAudioCtx.createBuffer(1, 1, 22050);
+    const src = sbAudioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(sbAudioCtx.destination);
+    src.start(0);
+  } catch (e) {}
+}
+
 function sbBuzzer() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    if (!sbAudioCtx) return;
+    if (sbAudioCtx.state === 'suspended') sbAudioCtx.resume();
+    const osc = sbAudioCtx.createOscillator();
+    const gain = sbAudioCtx.createGain();
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(sbAudioCtx.destination);
     osc.frequency.value = 220;
     osc.type = 'square';
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
+    gain.gain.setValueAtTime(0.3, sbAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, sbAudioCtx.currentTime + 2);
     osc.start();
-    osc.stop(ctx.currentTime + 2);
+    osc.stop(sbAudioCtx.currentTime + 2);
   } catch (e) {}
+}
+
+// ============ TIMEOUTS ============
+function sbRenderTimeoutButtons() {
+  ['home', 'away'].forEach(team => {
+    const container = document.getElementById(team === 'home' ? 'sbTimeoutHome' : 'sbTimeoutAway');
+    const used = sbState.timeoutsUsed[team];
+    let html = '';
+    for (let i = 0; i < sbState.timeoutsPerTeam; i++) {
+      const isUsed = i < used;
+      html += `<button class="sb-timeout-btn ${isUsed ? 'used' : ''}" data-sb-timeout-team="${team}" ${isUsed ? 'disabled' : ''}>${isUsed ? '✓ USED' : '⏱ TIMEOUT'}</button>`;
+    }
+    container.innerHTML = html;
+  });
+  document.querySelectorAll('[data-sb-timeout-team]').forEach(btn => {
+    btn.addEventListener('click', () => sbStartTimeout(btn.dataset.sbTimeoutTeam));
+  });
+}
+
+function sbStartTimeout(team) {
+  sbUnlockAudio();
+  if (sbState.timeoutActive) return; // one timeout at a time
+  if (sbState.timeoutsUsed[team] >= sbState.timeoutsPerTeam) return;
+
+  if (sbState.running) sbStopClock();
+  sbState.timeoutsUsed[team] += 1;
+  sbState.timeoutActive = { team, remainingMs: sbState.timeoutLengthMs };
+  sbRenderTimeoutButtons();
+
+  const nameInput = document.getElementById(team === 'home' ? 'sbHomeName' : 'sbAwayName');
+  document.getElementById('sbTimeoutTeamLabel').textContent = nameInput.value;
+  sbUpdateTimeoutClock();
+  document.getElementById('sbTimeoutOverlay').classList.add('active');
+
+  sbTimeoutLastTick = performance.now();
+  sbTimeoutTickHandle = requestAnimationFrame(sbTimeoutTick);
+}
+
+function sbTimeoutTick(now) {
+  if (!sbState.timeoutActive) return;
+  const delta = now - sbTimeoutLastTick;
+  sbTimeoutLastTick = now;
+  sbState.timeoutActive.remainingMs -= delta;
+  if (sbState.timeoutActive.remainingMs <= 0) {
+    sbState.timeoutActive.remainingMs = 0;
+    sbUpdateTimeoutClock();
+    sbBuzzer();
+    return; // stop ticking; coach taps END TIMEOUT to dismiss
+  }
+  sbUpdateTimeoutClock();
+  sbTimeoutTickHandle = requestAnimationFrame(sbTimeoutTick);
+}
+
+function sbUpdateTimeoutClock() {
+  const clockEl = document.getElementById('sbTimeoutClock');
+  const ms = sbState.timeoutActive.remainingMs;
+  clockEl.textContent = sbFormatTime(ms);
+  clockEl.classList.toggle('critical', ms <= 10000 && ms > 0);
+}
+
+function sbEndTimeout() {
+  if (sbTimeoutTickHandle) cancelAnimationFrame(sbTimeoutTickHandle);
+  sbTimeoutTickHandle = null;
+  sbState.timeoutActive = null;
+  document.getElementById('sbTimeoutOverlay').classList.remove('active');
 }
 
 let customTeamNames = { home: null, away: null };
@@ -2683,6 +3017,7 @@ function initScoreboard() {
   });
 
   document.getElementById('sbStartStopBtn').addEventListener('click', () => {
+    sbUnlockAudio();
     if (sbState.running) sbStopClock();
     else sbStartClock();
   });
@@ -2747,6 +3082,7 @@ function initScoreboard() {
         sbState.history[team].push(pts);
       }
       sbRender();
+      sbFitAllScores();
     });
   });
 
@@ -2758,18 +3094,23 @@ function initScoreboard() {
       const last = stack.pop();
       sbState[team] = Math.max(0, sbState[team] - last);
       sbRender();
+      sbFitAllScores();
     });
   });
 
   document.getElementById('sbResetBtn').addEventListener('click', () => {
-    if (!confirm('Reset entire game? Scores, clock, and quarter will all reset.')) return;
+    if (!confirm('Reset entire game? Scores, clock, quarter, and timeouts will all reset.')) return;
     sbStopClock();
+    sbEndTimeout();
     sbState.home = 0;
     sbState.away = 0;
     sbState.period = 1;
     sbState.timeMs = sbQuarterLength();
     sbState.history = { home: [], away: [] };
+    sbState.timeoutsUsed = { home: 0, away: 0 };
+    sbRenderTimeoutButtons();
     sbRender();
+    sbFitAllScores();
   });
 
   document.getElementById('sbFsBtn').addEventListener('click', () => {
@@ -2782,9 +3123,26 @@ function initScoreboard() {
         document.exitFullscreen().catch(() => {});
       }
     } catch (e) {}
+    // Box dimensions change significantly on fullscreen toggle; wait a
+    // couple frames for layout to settle before measuring.
+    requestAnimationFrame(() => requestAnimationFrame(sbFitAllScores));
   });
 
+  document.getElementById('sbTimeoutEndBtn').addEventListener('click', () => {
+    sbEndTimeout();
+  });
+
+  window.addEventListener('resize', sbFitAllScores);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(sbFitAllScores, 300);
+  });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(sbFitAllScores);
+  }
+
+  sbRenderTimeoutButtons();
   sbRender();
+  sbFitAllScores();
 }
 
 init();
