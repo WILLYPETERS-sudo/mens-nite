@@ -1334,16 +1334,16 @@ body.sb-fullscreen .sb-preset-row {
   display: none;
 }
 
-body.sb-fullscreen .sb-clock-section {
-  padding: 5px 16px 6px;
+body.sb-fullscreen .sb-period-row {
+  display: none;
 }
 
-body.sb-fullscreen .sb-period-row {
-  margin-bottom: 3px;
+body.sb-fullscreen .sb-clock-section {
+  padding: 4px 16px 4px;
 }
 
 body.sb-fullscreen .sb-clock-display {
-  font-size: clamp(44px, 11vw, 64px);
+  font-size: clamp(80px, 20vw, 150px);
 }
 
 body.sb-fullscreen .sb-clock-controls {
@@ -1361,34 +1361,35 @@ body.sb-fullscreen .sb-team-name-hint {
 }
 
 body.sb-fullscreen .sb-team-name {
-  font-size: 12px;
+  font-size: clamp(12px, 2.2vh, 20px);
   padding: 2px 0;
   margin-bottom: 2px;
 }
 
 body.sb-fullscreen .sb-score-buttons {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  gap: 6px;
 }
 
 body.sb-fullscreen .sb-score-btn {
-  padding: 6px 0;
-  font-size: 12px;
+  padding: clamp(6px, 1.6vh, 16px) 0;
+  font-size: clamp(12px, 2.2vh, 20px);
 }
 
 body.sb-fullscreen .sb-undo-btn {
-  padding: 6px 0;
-  margin-top: 3px;
-  font-size: 10px;
+  padding: clamp(6px, 1.4vh, 12px) 0;
+  margin-top: 4px;
+  font-size: clamp(10px, 1.6vh, 14px);
 }
 
 body.sb-fullscreen .sb-timeout-row {
-  margin-top: 3px;
-  gap: 3px;
+  margin-top: 4px;
+  gap: 6px;
 }
 
 body.sb-fullscreen .sb-timeout-btn {
-  padding: 5px 2px;
-  font-size: 8px;
+  padding: clamp(6px, 1.6vh, 14px) 2px;
+  font-size: clamp(8px, 1.4vh, 12px);
 }
 
 body.sb-fullscreen .sb-bottom-bar {
@@ -2760,6 +2761,7 @@ let sbTimeoutLastTick = 0;
 
 let sbTickHandle = null;
 let sbLastTick = 0;
+let sbLastBeepSecond = null; // last whole second (9..1) we've already beeped for
 
 function sbQuarterLength() {
   return Math.round(sbState.totalEveningMs / sbState.totalPeriods);
@@ -2789,8 +2791,10 @@ function sbFitScore(boxId, spanId) {
   const boxH = box.clientHeight;
   if (!boxW || !boxH) return;
 
-  // Start near the box's full height, then shrink if the digit is too wide
-  let size = boxH * 0.94;
+  // Start near the box's full height, then shrink if the digit is too wide.
+  // Capped below 100% so digits read as numbers, not stretched pill shapes,
+  // on very tall/narrow score boxes (e.g. wide landscape fullscreen).
+  let size = boxH * 0.82;
   span.style.fontSize = size + 'px';
   const maxW = boxW * 0.95;
   const renderedW = span.scrollWidth;
@@ -2851,6 +2855,7 @@ function updateUndoButton(team) {
 function sbStartClock() {
   if (sbState.running || sbState.timeMs <= 0) return;
   sbState.running = true;
+  sbLastBeepSecond = null;
   sbLastTick = performance.now();
   sbTickHandle = requestAnimationFrame(sbTick);
   sbRender();
@@ -2871,7 +2876,14 @@ function sbTick(now) {
   if (sbState.timeMs <= 0) {
     sbState.timeMs = 0;
     sbStopClock();
+    sbLastBeepSecond = 0;
     sbBuzzer();
+  } else {
+    const secondsLeft = Math.ceil(sbState.timeMs / 1000);
+    if (secondsLeft <= 9 && secondsLeft >= 1 && secondsLeft !== sbLastBeepSecond) {
+      sbLastBeepSecond = secondsLeft;
+      sbCountdownBeep();
+    }
   }
   sbRender();
   if (sbState.running) sbTickHandle = requestAnimationFrame(sbTick);
@@ -2896,20 +2908,61 @@ function sbUnlockAudio() {
   } catch (e) {}
 }
 
+// Short, sharp beep fired once per whole second for the last 9 seconds
+// on the clock — a shot-clock-style countdown so players can hear how
+// long they have left without watching the screen.
+function sbCountdownBeep() {
+  try {
+    if (!sbAudioCtx) return;
+    if (sbAudioCtx.state === 'suspended') sbAudioCtx.resume();
+    const start = sbAudioCtx.currentTime;
+    const durSec = 0.12;
+    const osc = sbAudioCtx.createOscillator();
+    const gain = sbAudioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 1046; // higher pitch than the final buzzer, reads as a "tick" not the horn
+    osc.connect(gain);
+    gain.connect(sbAudioCtx.destination);
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.8, start + 0.008);
+    gain.gain.setValueAtTime(0.8, start + durSec - 0.02);
+    gain.gain.linearRampToValueAtTime(0, start + durSec);
+    osc.start(start);
+    osc.stop(start + durSec);
+  } catch (e) {}
+}
+
+// Loud, pulsing buzzer — 4 sharp square-wave blasts at 880Hz (cuts through
+// small iPad speakers better than a low tone) with near-max gain, so it
+// reads clearly across a gym instead of a quiet single beep.
 function sbBuzzer() {
   try {
     if (!sbAudioCtx) return;
     if (sbAudioCtx.state === 'suspended') sbAudioCtx.resume();
-    const osc = sbAudioCtx.createOscillator();
-    const gain = sbAudioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(sbAudioCtx.destination);
-    osc.frequency.value = 220;
-    osc.type = 'square';
-    gain.gain.setValueAtTime(0.3, sbAudioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, sbAudioCtx.currentTime + 2);
-    osc.start();
-    osc.stop(sbAudioCtx.currentTime + 2);
+
+    const pulseCount = 4;
+    const pulseOnSec = 0.35;
+    const pulseOffSec = 0.15;
+    const freqHz = 880;
+    const now = sbAudioCtx.currentTime;
+
+    for (let i = 0; i < pulseCount; i++) {
+      const start = now + i * (pulseOnSec + pulseOffSec);
+      const osc = sbAudioCtx.createOscillator();
+      const gain = sbAudioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freqHz;
+      osc.connect(gain);
+      gain.connect(sbAudioCtx.destination);
+
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.9, start + 0.01);
+      gain.gain.setValueAtTime(0.9, start + pulseOnSec - 0.02);
+      gain.gain.linearRampToValueAtTime(0, start + pulseOnSec);
+
+      osc.start(start);
+      osc.stop(start + pulseOnSec);
+    }
   } catch (e) {}
 }
 
@@ -3024,11 +3077,13 @@ function initScoreboard() {
 
   document.getElementById('sbPlusBtn').addEventListener('click', () => {
     sbState.timeMs += 60000;
+    sbLastBeepSecond = null;
     sbRender();
   });
 
   document.getElementById('sbMinusBtn').addEventListener('click', () => {
     sbState.timeMs = Math.max(0, sbState.timeMs - 60000);
+    sbLastBeepSecond = null;
     sbRender();
   });
 
@@ -3041,6 +3096,7 @@ function initScoreboard() {
       const m = parseInt(parts[0], 10) || 0;
       const s = parseInt(parts[1], 10) || 0;
       sbState.timeMs = (m * 60 + s) * 1000;
+      sbLastBeepSecond = null;
       sbRender();
     }
   });
@@ -3049,6 +3105,7 @@ function initScoreboard() {
     if (sbState.running) sbStopClock();
     sbState.period = sbState.period >= sbState.totalPeriods ? 1 : sbState.period + 1;
     sbState.timeMs = sbQuarterLength();
+    sbLastBeepSecond = null;
     sbRender();
   });
 
@@ -3058,6 +3115,7 @@ function initScoreboard() {
       const totalMins = parseInt(btn.dataset.preset, 10);
       sbState.totalEveningMs = totalMins * 60 * 1000;
       sbState.timeMs = sbQuarterLength();
+      sbLastBeepSecond = null;
       sbRender();
     });
   });
@@ -3070,6 +3128,7 @@ function initScoreboard() {
     if (!mins || mins <= 0) return;
     sbState.totalEveningMs = mins * 60 * 1000;
     sbState.timeMs = sbQuarterLength();
+    sbLastBeepSecond = null;
     sbRender();
   });
 
@@ -3108,6 +3167,7 @@ function initScoreboard() {
     sbState.timeMs = sbQuarterLength();
     sbState.history = { home: [], away: [] };
     sbState.timeoutsUsed = { home: 0, away: 0 };
+    sbLastBeepSecond = null;
     sbRenderTimeoutButtons();
     sbRender();
     sbFitAllScores();
